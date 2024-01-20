@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  attacker:
+    build: attacker
+    #command: php /opt/slowloris.php post 1 defender
+    command: hping3 --faster -c 1000 defender #http flood  --rand-source
+    #command: hping3 --udp defender -c 100 -d 40 -p 80
+    #command: hping3 --icmp --faster -c 1000 defender
+    #command: hping3 --syn --faster -c 1000 -d 40 defender -p 80
+    #command: ping -l 65610 defender -c 1
+
+
+  defender:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - web-mysql-app
+    privileged: true
+    volumes:
+      - ./nginx/index.html:/var/www/html/index.html
+      - ./nginx/default.conf:/etc/nginx/sites-available/default
+
+  web-mysql-app:
+    container_name: web-mysql-app
+    build: ./web-mysql-app
+    volumes:
+      - .m2:/root/.m2
+    environment:
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.jdbc.Driver
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysqldb:3306/test
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=admin
+    depends_on:
+      - mysqldb
+
+  mysqldb:
+    image: mysql:8.2.0
+    environment:
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: admin
+    volumes:
+      - "./mysql/schema.sql:/docker-entrypoint-initdb.d/1.sql"
+
+
+
+
+
